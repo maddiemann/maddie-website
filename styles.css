@@ -1,1 +1,11 @@
 /* css styles */
+body {
+    font-family: Arial, sans-serif;
+    max-width: 900px;
+    margin: auto;
+    line-height: 1.6;
+}
+
+h1 {
+    color: #2c3e50;
+}

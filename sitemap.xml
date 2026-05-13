@@ -1,11 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://maddiemann.github.io/maddie-website/cover-letter.html</loc>
+    <lastmod>2026-05-13T05:09:38.568Z</lastmod>
+  </url>
+  <url>
     <loc>https://maddiemann.github.io/maddie-website/about.html</loc>
     <lastmod>2026-04-20T15:43:40.559Z</lastmod>
   </url>
   <url>
+    <loc>https://maddiemann.github.io/maddie-website/resume.html</loc>
+    <lastmod>2026-05-13T05:10:07.262Z</lastmod>
+  </url>
+  <url>
     <loc>https://maddiemann.github.io/maddie-website/index.html</loc>
-    <lastmod>2026-04-27T22:17:05.297Z</lastmod>
+    <lastmod>2026-05-13T04:08:19.479Z</lastmod>
+  </url>
+  <url>
+    <loc>https://maddiemann.github.io/maddie-website/analysis2.html</loc>
+    <lastmod>2026-05-13T04:58:46.404Z</lastmod>
   </url>
 </urlset>
