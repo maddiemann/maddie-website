@@ -1,12 +1,5 @@
 [
   {
-    "objectID": "cover-letter.html",
-    "href": "cover-letter.html",
-    "title": "Cover Letter",
-    "section": "",
-    "text": "Cover Letter"
-  },
-  {
     "objectID": "about.html",
     "href": "about.html",
     "title": "About",
@@ -16,64 +9,71 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "my-website",
+    "title": "Maddie Mann",
     "section": "",
-    "text": "Hi! My name is Maddie Mann. I am a biochemistry student interested in bioinformatics, research, and analytical science.\nThis website contains:\n\nMy resume\nA sample cover letter\nSample scientific analysis work\n\n\n\n\nEmail: maddiermann44@gmail.com\nGitHub: https://github.com/maddiemann"
+    "text": "Hi! My name is Maddie Mann. I am a biochemistry student interested in bioinformatics, research, and analytical science.\n\n\n\nEmail: maddiermann44@gmail.com\nGitHub: https://github.com/maddiemann"
   },
   {
     "objectID": "index.html#contact",
     "href": "index.html#contact",
-    "title": "my-website",
+    "title": "Maddie Mann",
     "section": "",
     "text": "Email: maddiermann44@gmail.com\nGitHub: https://github.com/maddiemann"
   },
   {
     "objectID": "analysis2.html",
     "href": "analysis2.html",
-    "title": "Prostate Cancer Survival Prediction and Genomic Alteration Analysis",
+    "title": "Prostate Cancer Progression Free Survival and Genomic Alteration Analysis",
     "section": "",
-    "text": "This analysis investigates whether genomic and clinical variables can predict prostate cancer progression free survival status using machine learning classification models. Additional regression analysis explores which biological variables may influence Fraction of Genome Altered, a measure of genomic instability commonly associated with tumor progression.\nThe analysis includes:\n\nData cleaning and preprocessing\nClassification modeling for survival prediction\nFeature importance analysis\nROC curve evaluation\nConfusion matrix visualization\nRegression analysis for genomic instability"
+    "text": "This analysis investigates whether genomic and clinical variables can predict prostate cancer progression free survival status using machine learning classification models. Additional regression analysis explores which biological variables may influence Fraction of Genome Altered, a measure of genomic instability commonly associated with tumor progression.\nThe analysis includes:\n\nData cleaning and preprocessing\nClassification modeling for survival prediction\nFeature importance analysis\nROC curve evaluation\nConfusion matrix visualization\nRegression analysis for genomic instability of tumor microenviroments."
   },
   {
     "objectID": "analysis2.html#distribution-of-progression-free-survival-status",
     "href": "analysis2.html#distribution-of-progression-free-survival-status",
-    "title": "Prostate Cancer Survival Prediction and Genomic Alteration Analysis",
+    "title": "Prostate Cancer Progression Free Survival and Genomic Alteration Analysis",
     "section": "Distribution of Progression-Free Survival Status",
-    "text": "Distribution of Progression-Free Survival Status\n\nplt.figure(figsize=(6,4))\n\nsns.countplot(x=prostate_class['Progression_Free_Status'])\n\nplt.xlabel('Progression-Free Status')\nplt.ylabel('Count')\nplt.title('Distribution of Survival Classes')\n\nplt.tight_layout()\nplt.show()"
+    "text": "Distribution of Progression-Free Survival Status\n\nplt.figure(figsize=(6,4))\n\nsns.countplot(x=prostate_class['Progression_Free_Status'])\n\nplt.xlabel('Progression-Free Status')\nplt.ylabel('Count')\nplt.title('Distribution of Survival Classes')\n\nplt.tight_layout()\nplt.show()\n\n\n\n\n\n\n\n\nThere is a large class imbalance."
   },
   {
     "objectID": "analysis2.html#distribution-of-fraction-of-genome-altered",
     "href": "analysis2.html#distribution-of-fraction-of-genome-altered",
-    "title": "Prostate Cancer Survival Prediction and Genomic Alteration Analysis",
+    "title": "Prostate Cancer Progression Free Survival and Genomic Alteration Analysis",
     "section": "Distribution of Fraction of Genome Altered",
     "text": "Distribution of Fraction of Genome Altered\n\nplt.figure(figsize=(7,5))\n\nplt.hist(prostate_cancer['Fraction_Genome_Altered'].dropna(), bins=30)\n\nplt.xlabel('Fraction of Genome Altered')\nplt.ylabel('Count')\nplt.title('Distribution of Fraction of Genome Altered')\n\nplt.tight_layout()\nplt.show()"
   },
   {
     "objectID": "analysis2.html#classification-report",
     "href": "analysis2.html#classification-report",
-    "title": "Prostate Cancer Survival Prediction and Genomic Alteration Analysis",
+    "title": "Prostate Cancer Progression Free Survival and Genomic Alteration Analysis",
     "section": "Classification Report",
     "text": "Classification Report\n\ny_pred = rf_pipeline.predict(X_test)\n\nprint(classification_report(y_test, y_pred))\n\n              precision    recall  f1-score   support\n\n           0       0.85      0.87      0.86       121\n           1       0.38      0.36      0.37        28\n\n    accuracy                           0.77       149\n   macro avg       0.62      0.61      0.62       149\nweighted avg       0.77      0.77      0.77       149"
   },
   {
     "objectID": "analysis2.html#confusion-matrix",
     "href": "analysis2.html#confusion-matrix",
-    "title": "Prostate Cancer Survival Prediction and Genomic Alteration Analysis",
+    "title": "Prostate Cancer Progression Free Survival and Genomic Alteration Analysis",
     "section": "Confusion Matrix",
-    "text": "Confusion Matrix\n\ncm = confusion_matrix(y_test, y_pred)\n\nplt.figure(figsize=(6,5))\n\nsns.heatmap(\n    cm,\n    annot=True,\n    fmt='d',\n    cmap='Blues',\n    cbar=False\n)\n\nplt.xticks([0.5, 1.5], ['Predicted Negative', 'Predicted Positive'])\nplt.yticks([0.5, 1.5], ['Actual Negative', 'Actual Positive'], rotation=0)\n\nplt.xlabel('Predicted Outcome')\nplt.ylabel('True Outcome')\nplt.title('Confusion Matrix: Survival Classification')\n\nplt.tight_layout()\nplt.show()"
+    "text": "Confusion Matrix\n0 (negative) class is progressing without return of cancer. 1 (positive)class is progressing and then cancer returns.\n\ncm = confusion_matrix(y_test, y_pred_rf)\n\nplt.figure(figsize=(6,5))\n\nsns.heatmap(\n    cm,\n    annot=True,\n    fmt='d',\n    cmap='Blues',\n    cbar=False\n)\n\nplt.xticks(\n    [0.5, 1.5],\n    ['Predicted Negative', 'Predicted Positive']\n)\n\nplt.yticks(\n    [0.5, 1.5],\n    ['Actual Negative', 'Actual Positive'],\n    rotation=0\n)\n\nplt.xlabel('Predicted Outcome')\nplt.ylabel('True Outcome')\nplt.title('Confusion Matrix: Survival Classification')\n\nplt.tight_layout()\nplt.show()"
   },
   {
     "objectID": "analysis2.html#roc-curve",
     "href": "analysis2.html#roc-curve",
-    "title": "Prostate Cancer Survival Prediction and Genomic Alteration Analysis",
+    "title": "Prostate Cancer Progression Free Survival and Genomic Alteration Analysis",
     "section": "ROC Curve",
-    "text": "ROC Curve\n\ny_probs = rf_pipeline.predict_proba(X_test)[:, 1]\n\nfpr, tpr, thresholds = roc_curve(y_test, y_probs)\nauc_score = roc_auc_score(y_test, y_probs)\n\nplt.figure(figsize=(6,6))\n\nplt.plot(fpr, tpr, label=f'AUC = {auc_score:.3f}')\nplt.plot([0, 1], [0, 1], linestyle='--')\n\nplt.xlabel('False Positive Rate')\nplt.ylabel('True Positive Rate')\nplt.title('ROC Curve: Survival Prediction Model')\nplt.legend()\n\nplt.tight_layout()\nplt.show()"
+    "text": "ROC Curve\n\ny_probs = rf_grid.predict_proba(X_test)[:, 1]\n\nfpr, tpr, thresholds = roc_curve(y_test, y_probs)\nauc_score = roc_auc_score(y_test, y_probs)\n\nplt.figure(figsize=(6,6))\n\nplt.plot(fpr, tpr, label=f'AUC = {auc_score:.3f}')\nplt.plot([0, 1], [0, 1], linestyle='--')\n\nplt.xlabel('False Positive Rate')\nplt.ylabel('True Positive Rate')\nplt.title('ROC Curve: Survival Prediction Model')\nplt.legend()\n\nplt.tight_layout()\nplt.show()"
   },
   {
     "objectID": "analysis2.html#top-predictive-variables",
     "href": "analysis2.html#top-predictive-variables",
-    "title": "Prostate Cancer Survival Prediction and Genomic Alteration Analysis",
+    "title": "Prostate Cancer Progression Free Survival and Genomic Alteration Analysis",
     "section": "Top Predictive Variables",
     "text": "Top Predictive Variables\n\ntop_features = rf_importance_df.head(10)\n\nfig, ax = plt.subplots(figsize=(9,5))\n\nax.barh(\n    top_features.index[::-1],\n    top_features.values[::-1]\n)\n\nax.set_xlabel('Feature Importance')\nax.set_title('Top 10 Predictive Features')\n\nax.spines['top'].set_visible(False)\nax.spines['right'].set_visible(False)\n\nplt.tight_layout()\nplt.show()"
+  },
+  {
+    "objectID": "analysis2.html#regression-model-performance",
+    "href": "analysis2.html#regression-model-performance",
+    "title": "Prostate Cancer Progression Free Survival and Genomic Alteration Analysis",
+    "section": "Regression Model Performance",
+    "text": "Regression Model Performance\n\ny_pred_reg = tree_grid.predict(X_test)\nr2 = r2_score(y_test, y_pred_reg)\n\nprint(f\"The best test tree R2 value is {r2}.\")\n\nThe best test tree R2 value is 0.2633597610628944.\n\n\n\nimportances = best_tree.named_steps[\n    'tree'\n].feature_importances_\n\nfeature_names = best_tree.named_steps[\n    'preprocessor'\n].get_feature_names_out()\n\nrf_reg_importance_df = pd.Series(\n    importances,\n    index=feature_names\n).sort_values(ascending=False)\n\nprint(rf_reg_importance_df.head(5))\n\nnum__Ragnum_Hypoxia_Score    0.469310\nnum__Mutation_Count          0.352338\nnum__Buffa_Hypoxia_Score     0.178352\nnum__MSI_MANTIS_Score        0.000000\nnum__Diagnosis_Age           0.000000\ndtype: float64\n\n\n\ntop_features = rf_reg_importance_df.head(5)\n\nfig, ax = plt.subplots(figsize=(6,5))\n\nax.barh(\n    top_features.index[::-1],\n    top_features.values[::-1]\n)\n\nax.set_xlabel('Feature Importance')\nax.set_title(\n    'Top Variables Influencing Fraction of Genome Altered'\n)\n\nax.spines['top'].set_visible(False)\nax.spines['right'].set_visible(False)\n\nplt.tight_layout()\nplt.show()"
   }
 ]
