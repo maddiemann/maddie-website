@@ -120,6 +120,16 @@ prostate_class['Progression_Free_Status'] = (prostate_class['Progression_Free_St
 
 # Exploratory Analysis
 
+### Notes about some features 
+* Aneuploidy score: measures the total number of chromosome arm gains or losses within a tumor. Ranges from 0-39. A higher score indicates more "chaos" in the genome and often more aggressive tumors. 
+* Birth_from_Initial_Pathologic_Diagnosis_Date: Time interval from a person's date of birth to the date of initial pathologic diagnosis, represented as a calculated number of days.
+
+* Buffa_Hypoxia_Score: a molecular tool used to quantify the level of oxygen deprivation (hypoxia) within tumors. Measures the activity of genes regulated by low oxygen, high scores are associated with poorer prognosis 
+
+* Ragnum_Hypoxia_Score: Measures oxygenation levels particularly in prostate cancer.
+
+* Disease_Free_(Months): Amount of time in remission. Likely will be predictor variable 
+
 ## Distribution of Progression-Free Survival Status
 
 ```{python}
