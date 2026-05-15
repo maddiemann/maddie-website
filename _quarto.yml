@@ -2,20 +2,24 @@ project:
   type: website
 
 website:
-  title: "my-website"
+  title: "Maddie Mann"
   navbar:
     left:
       - href: index.qmd
         text: Home
-      - about.qmd
+      - href: resume.qmd
+        text: Resume
+      - href: cover-letter.qmd
+        text: Cover Letter
+      - href: analysis2.qmd
+        text: Sample Analysis
+      
 
 format:
   html:
     theme:
       - cosmo
-      - brand
     css: styles.css
     toc: true
-
 
 

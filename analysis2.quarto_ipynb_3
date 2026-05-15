@@ -1,0 +1,817 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "title: \"Prostate Cancer Progression Free Survival and Genomic Alteration Analysis\"\n",
+        "format:\n",
+        "  html:\n",
+        "    theme: cosmo\n",
+        "    toc: true\n",
+        "    code-fold: false\n",
+        "execute:\n",
+        "  warning: false\n",
+        "  message: false\n",
+        "---\n",
+        "\n",
+        "\n",
+        "\n",
+        "# Introduction\n",
+        "\n",
+        "This analysis investigates whether genomic and clinical variables can predict prostate cancer progression free survival status using machine learning classification models. Additional regression analysis explores which biological variables may influence Fraction of Genome Altered, a measure of genomic instability commonly associated with tumor progression.\n",
+        "\n",
+        "The analysis includes:\n",
+        "\n",
+        "* Data cleaning and preprocessing\n",
+        "* Classification modeling for survival prediction\n",
+        "* Feature importance analysis\n",
+        "* ROC curve evaluation\n",
+        "* Confusion matrix visualization\n",
+        "* Regression analysis for genomic instability of tumor microenviroments. \n",
+        "\n",
+        "# Import Packages"
+      ],
+      "id": "87d85fce"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import matplotlib.pyplot as plt\n",
+        "import seaborn as sns\n",
+        "\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "from sklearn.pipeline import Pipeline\n",
+        "from sklearn.compose import ColumnTransformer\n",
+        "from sklearn.impute import SimpleImputer\n",
+        "from sklearn.preprocessing import OneHotEncoder\n",
+        "\n",
+        "from sklearn.ensemble import RandomForestClassifier\n",
+        "from sklearn.tree import DecisionTreeRegressor\n",
+        "from sklearn.model_selection import KFold, GridSearchCV, StratifiedKFold\n",
+        "\n",
+        "from sklearn.metrics import (classification_report, confusion_matrix, roc_curve, roc_auc_score, r2_score)"
+      ],
+      "id": "526f11b8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Load Data"
+      ],
+      "id": "6b19106e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "prostate_cancer = pd.read_csv(\n",
+        "    \"data/prad_tcga_pan_can_atlas_2018_clinical_data.tsv\",\n",
+        "    sep='\\t'\n",
+        ")"
+      ],
+      "id": "8f870863",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Data Cleaning"
+      ],
+      "id": "584ea05f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "prostate_cancer.columns = prostate_cancer.columns.str.replace(' ', '_')\n",
+        "prostate_cancer.columns = prostate_cancer.columns.str.replace(r'[\\(\\)]', '', regex=True)"
+      ],
+      "id": "51c78f33",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "#### Non-Predictive Columns \n",
+        "Remove columns that have all/majority 'NA' values, near zero variance, and identifier variables. "
+      ],
+      "id": "6f4802c2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "non_predictor = [\n",
+        "    'Study_ID', 'Patient_ID', 'Sample_ID', 'Patient_Weight', 'Cancer_Type', 'Cancer_Type_Detailed',\n",
+        "    'Sex', 'Number_of_Samples_Per_Patient', 'American_Joint_Committee_on_Cancer_Metastasis_Stage_Code', \n",
+        "                'Primary_Lymph_Node_Presentation_Assessment', 'Neoplasm_Disease_Stage_American_Joint_Committee_on_Cancer_Code', \n",
+        "                'American_Joint_Committee_on_Cancer_Publication_Version_Type', \n",
+        "                'Neoplasm_Disease_Stage_American_Joint_Committee_on_Cancer_Code', 'TCGA_PanCanAtlas_Cancer_Type_Acronym',\n",
+        "                'Last_Alive_Less_Initial_Pathologic_Diagnosis_Date_Calculated_Day_Value', 'Disease-specific_Survival_status',\n",
+        "                'Ethnicity_Category', 'Neoplasm_Histologic_Grade', 'Neoadjuvant_Therapy_Type_Administered_Prior_To_Resection_Text', 'ICD-10_Classification', 'International_Classification_of_Diseases_for_Oncology,_Third_Edition_ICD-O-3_Histology_Code',\n",
+        "                'International_Classification_of_Diseases_for_Oncology,_Third_Edition_ICD-O-3_Site_Code', \n",
+        "                'Informed_consent_verified', 'Oncotree_Code', 'Other_Patient_ID',\n",
+        "                'American_Joint_Committee_on_Cancer_Metastasis_Stage_Code', 'Primary_Lymph_Node_Presentation_Assessment', \n",
+        "                'Race_Category', 'Number_of_Samples_Per_Patient', 'Sample_Type',\n",
+        "                'Somatic_Status', 'Subtype', 'Tissue_Source_Site', 'Tissue_Prospective_Collection_Indicator',\n",
+        "       'Tissue_Retrospective_Collection_Indicator', 'Tissue_Source_Site_Code', 'Tumor_Disease_Anatomic_Site','Last_Communication_Contact_from_Initial_Pathologic_Diagnosis_Date', 'Birth_from_Initial_Pathologic_Diagnosis_Date',\n",
+        "       'Form_completion_date'\n",
+        "]\n",
+        "\n",
+        "prostate_cancer = prostate_cancer.drop(columns=non_predictor)"
+      ],
+      "id": "cf004b18",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "prostate_cancer = prostate_cancer.rename(columns={\n",
+        "    'Neoplasm_Disease_Lymph_Node_Stage_American_Joint_Committee_on_Cancer_Code': 'Lymph_Node_Stage',\n",
+        "    'American_Joint_Committee_on_Cancer_Tumor_Stage_Code': 'Tumor_Stage'\n",
+        "})"
+      ],
+      "id": "1ab627d2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Remove Other Potential Targets \n",
+        "\n",
+        "These variables are highly correlated with the predictor.  "
+      ],
+      "id": "95f84698"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "other_target = [\n",
+        "    'Disease_Free_Months',\n",
+        "    'Disease_Free_Status',\n",
+        "    'Progress_Free_Survival_Months',\n",
+        "    'Months_of_disease-specific_survival',\n",
+        "    'Overall_Survival_Months',\n",
+        "    'Overall_Survival_Status',\n",
+        "    'Person_Neoplasm_Cancer_Status',\n",
+        "    'New_Neoplasm_Event_Post_Initial_Therapy_Indicator',\n",
+        "]\n",
+        "\n",
+        "prostate_class = prostate_cancer.drop(columns=other_target)"
+      ],
+      "id": "fe6a1fb8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "prostate_class['Progression_Free_Status'] = (prostate_class['Progression_Free_Status'].astype(str).str[0].astype(int))"
+      ],
+      "id": "a290985c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Exploratory Analysis\n",
+        "\n",
+        "## Distribution of Progression-Free Survival Status"
+      ],
+      "id": "f2f4f7d0"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "plt.figure(figsize=(6,4))\n",
+        "\n",
+        "sns.countplot(x=prostate_class['Progression_Free_Status'])\n",
+        "\n",
+        "plt.xlabel('Progression-Free Status')\n",
+        "plt.ylabel('Count')\n",
+        "plt.title('Distribution of Survival Classes')\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()"
+      ],
+      "id": "e227480e",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "There is a large class imbalance. \n",
+        "\n",
+        "## Distribution of Fraction of Genome Altered"
+      ],
+      "id": "c0eb8317"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "plt.figure(figsize=(7,5))\n",
+        "\n",
+        "plt.hist(prostate_cancer['Fraction_Genome_Altered'].dropna(), bins=30)\n",
+        "\n",
+        "plt.xlabel('Fraction of Genome Altered')\n",
+        "plt.ylabel('Count')\n",
+        "plt.title('Distribution of Fraction of Genome Altered')\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()"
+      ],
+      "id": "0c5798a9",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Train-Test Split"
+      ],
+      "id": "650259f8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "X = prostate_class.drop(columns='Progression_Free_Status')\n",
+        "y = prostate_class['Progression_Free_Status']\n",
+        "\n",
+        "X_train, X_test, y_train, y_test = train_test_split(\n",
+        "    X,\n",
+        "    y,\n",
+        "    train_size=0.7,\n",
+        "    random_state=4025,\n",
+        "    stratify=y\n",
+        ")"
+      ],
+      "id": "1cf4abe5",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Preprocessing"
+      ],
+      "id": "8b311748"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "numeric_cols = ['Diagnosis_Age', 'Aneuploidy_Score', 'Buffa_Hypoxia_Score', 'Fraction_Genome_Altered', 'MSI_MANTIS_Score', 'MSIsensor_Score', 'Mutation_Count', 'Ragnum_Hypoxia_Score', 'Tumor_Break_Load', 'TMB_nonsynonymous', 'Winter_Hypoxia_Score']\n",
+        "categorical_cols = ['Genetic_Ancestry_Label', 'In_PanCan_Pathway_Analysis', 'Lymph_Node_Stage', 'Tumor_Stage', 'Prior_Diagnosis', 'Radiation_Therapy', 'Tumor_Type']"
+      ],
+      "id": "d584880f",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "numeric_transformer = Pipeline([\n",
+        "    ('imputer', SimpleImputer(strategy='median'))\n",
+        "])\n",
+        "\n",
+        "categorical_transformer = Pipeline([\n",
+        "    ('imputer', SimpleImputer(strategy='most_frequent')),\n",
+        "    ('onehot', OneHotEncoder(handle_unknown='ignore'))\n",
+        "])"
+      ],
+      "id": "2c49c304",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "preprocessor = ColumnTransformer([\n",
+        "    ('num', numeric_transformer, numeric_cols),\n",
+        "    ('cat', categorical_transformer, categorical_cols)\n",
+        "])"
+      ],
+      "id": "057ae0d1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Classification Model"
+      ],
+      "id": "6905155a"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "rf_classifier = RandomForestClassifier(\n",
+        "    n_estimators=100,\n",
+        "    max_depth=6,\n",
+        "    class_weight='balanced',\n",
+        "    random_state=4025\n",
+        ")\n",
+        "\n",
+        "rf_pipeline = Pipeline([\n",
+        "    ('preprocessor', preprocessor),\n",
+        "    ('rf', rf_classifier)\n",
+        "])\n",
+        "\n",
+        "rf_pipeline.fit(X_train, y_train)"
+      ],
+      "id": "84f6c272",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Random Forest Evaluation\n",
+        "\n",
+        "## Classification Report"
+      ],
+      "id": "01cd732c"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "y_pred = rf_pipeline.predict(X_test)\n",
+        "\n",
+        "print(classification_report(y_test, y_pred))"
+      ],
+      "id": "6ac92d49",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Cross Validation "
+      ],
+      "id": "221c8185"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "cv = StratifiedKFold(n_splits = 10, shuffle = True, random_state=4025)\n",
+        "\n",
+        "param_grid = {\n",
+        "    'rf__n_estimators': [100, 200, 300],\n",
+        "    'rf__max_depth': [4, 6, 8, 10],\n",
+        "    'rf__min_samples_split': [2, 5, 10],\n",
+        "    'rf__min_samples_leaf': [1, 2, 4]\n",
+        "}\n",
+        "\n",
+        "rf_grid = GridSearchCV(\n",
+        "    estimator=rf_pipeline,\n",
+        "    param_grid=param_grid,\n",
+        "    cv=cv,\n",
+        "    scoring='f1', \n",
+        "    n_jobs=-1,\n",
+        ")\n",
+        "\n",
+        "rf_grid.fit(X_train, y_train)\n",
+        "\n",
+        "y_pred_rf = rf_grid.predict(X_test)\n",
+        "\n",
+        "print(rf_grid.best_params_)\n",
+        "print(rf_grid.best_score_)"
+      ],
+      "id": "b6128600",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "### CV Classification Report "
+      ],
+      "id": "28b821cb"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(classification_report(y_test, y_pred_rf))"
+      ],
+      "id": "ffabca28",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "F1 score was used for scoring cross validation. Class imbalnce leads to high accuracy baseline. \n",
+        "\n",
+        "## Confusion Matrix\n",
+        "\n",
+        "0 (negative) class is progressing without return of cancer. \n",
+        "1 (positive)class is progressing and then cancer returns. "
+      ],
+      "id": "7fdcc9b2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "cm = confusion_matrix(y_test, y_pred_rf)\n",
+        "\n",
+        "plt.figure(figsize=(6,5))\n",
+        "\n",
+        "sns.heatmap(\n",
+        "    cm,\n",
+        "    annot=True,\n",
+        "    fmt='d',\n",
+        "    cmap='Blues',\n",
+        "    cbar=False\n",
+        ")\n",
+        "\n",
+        "plt.xticks(\n",
+        "    [0.5, 1.5],\n",
+        "    ['Predicted Negative', 'Predicted Positive']\n",
+        ")\n",
+        "\n",
+        "plt.yticks(\n",
+        "    [0.5, 1.5],\n",
+        "    ['Actual Negative', 'Actual Positive'],\n",
+        "    rotation=0\n",
+        ")\n",
+        "\n",
+        "plt.xlabel('Predicted Outcome')\n",
+        "plt.ylabel('True Outcome')\n",
+        "plt.title('Confusion Matrix: Survival Classification')\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()"
+      ],
+      "id": "1198e5a2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## ROC Curve"
+      ],
+      "id": "224381f0"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "y_probs = rf_grid.predict_proba(X_test)[:, 1]\n",
+        "\n",
+        "fpr, tpr, thresholds = roc_curve(y_test, y_probs)\n",
+        "auc_score = roc_auc_score(y_test, y_probs)\n",
+        "\n",
+        "plt.figure(figsize=(6,6))\n",
+        "\n",
+        "plt.plot(fpr, tpr, label=f'AUC = {auc_score:.3f}')\n",
+        "plt.plot([0, 1], [0, 1], linestyle='--')\n",
+        "\n",
+        "plt.xlabel('False Positive Rate')\n",
+        "plt.ylabel('True Positive Rate')\n",
+        "plt.title('ROC Curve: Survival Prediction Model')\n",
+        "plt.legend()\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()"
+      ],
+      "id": "7fcf9c42",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Feature Importance Analysis"
+      ],
+      "id": "8ef15cb1"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "importances = rf_pipeline.named_steps['rf'].feature_importances_\n",
+        "feature_names = rf_pipeline.named_steps['preprocessor'].get_feature_names_out()\n",
+        "\n",
+        "rf_importance_df = pd.Series(\n",
+        "    importances,\n",
+        "    index=feature_names\n",
+        ").sort_values(ascending=False)\n",
+        "\n",
+        "rf_importance_df.head(10)"
+      ],
+      "id": "3b53e8e2",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Top Predictive Variables"
+      ],
+      "id": "a52e9da6"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "top_features = rf_importance_df.head(10)\n",
+        "\n",
+        "fig, ax = plt.subplots(figsize=(9,5))\n",
+        "\n",
+        "ax.barh(\n",
+        "    top_features.index[::-1],\n",
+        "    top_features.values[::-1]\n",
+        ")\n",
+        "\n",
+        "ax.set_xlabel('Feature Importance')\n",
+        "ax.set_title('Top 10 Predictive Features')\n",
+        "\n",
+        "ax.spines['top'].set_visible(False)\n",
+        "ax.spines['right'].set_visible(False)\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()"
+      ],
+      "id": "51f3b2d8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Regression Analysis: Fraction of Genome Altered\n",
+        "Since fraction of genome altered was the most important feature in determining progression free status looking at what features impact the genome can be beneficial. "
+      ],
+      "id": "773de921"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "plt.figure(figsize=(7,5))\n",
+        "\n",
+        "plt.scatter(\n",
+        "    prostate_cancer['Ragnum_Hypoxia_Score'],\n",
+        "    prostate_cancer['Fraction_Genome_Altered']\n",
+        ")\n",
+        "\n",
+        "plt.xlabel('Hypoxia Score')\n",
+        "plt.ylabel('Fraction of Genome Altered')\n",
+        "plt.title('Hypoxia and Genomic Instability')\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()"
+      ],
+      "id": "74f4db9a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "prostate_reg = prostate_class.dropna(subset=['Fraction_Genome_Altered'])\n",
+        "\n",
+        "X_expanded = prostate_reg[[\n",
+        "    'Ragnum_Hypoxia_Score', \n",
+        "    'Buffa_Hypoxia_Score', \n",
+        "    'MSI_MANTIS_Score', \n",
+        "    'Mutation_Count',       \n",
+        "    'Diagnosis_Age'         \n",
+        "]]\n",
+        "\n",
+        "num_vars = [\n",
+        "    'Ragnum_Hypoxia_Score', \n",
+        "    'Buffa_Hypoxia_Score', \n",
+        "    'MSI_MANTIS_Score', \n",
+        "    'Mutation_Count',       \n",
+        "    'Diagnosis_Age'         \n",
+        "]\n",
+        "\n",
+        "y = prostate_reg['Fraction_Genome_Altered']\n",
+        "\n",
+        "X_train, X_test, y_train, y_test = train_test_split(\n",
+        "    X_expanded, y,\n",
+        "    train_size=0.7,\n",
+        "    random_state=4025\n",
+        ")\n",
+        "\n",
+        "numeric_transformer = Pipeline([\n",
+        "    ('imputer', SimpleImputer(strategy='median'))\n",
+        "])\n",
+        "\n",
+        "\n",
+        "\n",
+        "preprocessor = ColumnTransformer([\n",
+        "    ('num', numeric_transformer, num_vars)\n",
+        "])\n",
+        "\n",
+        "reg_tree_pipe = Pipeline([\n",
+        "    ('preprocessor', preprocessor),\n",
+        "    ('tree', DecisionTreeRegressor(random_state=4025, ccp_alpha=0.0001))\n",
+        "])\n",
+        "\n",
+        "reg_tree_pipe.fit(X_train, y_train)\n",
+        "\n",
+        "\n",
+        "print(f\"Train R^2: {reg_tree_pipe.score(X_train, y_train):.3f}\")\n",
+        "print(f\"Test R^2: {reg_tree_pipe.score(X_test, y_test):.3f}\")"
+      ],
+      "id": "effc2b22",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "cv = KFold(n_splits=10, shuffle=True, random_state=4025)\n",
+        "\n",
+        "\n",
+        "\n",
+        "param_grid = {\n",
+        "    'tree__max_depth': [3, 5, 10, None],\n",
+        "    'tree__min_samples_split': [2, 5, 10],\n",
+        "    'tree__min_samples_leaf': [1, 2, 4]\n",
+        "}\n",
+        "\n",
+        "tree_grid = GridSearchCV(\n",
+        "    estimator=reg_tree_pipe,\n",
+        "    param_grid=param_grid,\n",
+        "    cv=cv,\n",
+        "    scoring='r2'\n",
+        ")\n",
+        "\n",
+        "tree_grid.fit(X_train, y_train)"
+      ],
+      "id": "d87c3b6d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "print(\"Best Parameters:\")\n",
+        "print(tree_grid.best_params_)\n",
+        "\n",
+        "print(f\"\\nBest Cross-Validation R²: {tree_grid.best_score_:.3f}\")\n",
+        "best_tree = tree_grid.best_estimator_"
+      ],
+      "id": "f792f440",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Regression Model Performance"
+      ],
+      "id": "af24ff77"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "y_pred_reg = tree_grid.predict(X_test)\n",
+        "r2 = r2_score(y_test, y_pred_reg)\n",
+        "\n",
+        "print(f\"The best test tree R2 value is {r2}.\")"
+      ],
+      "id": "0e7710e8",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "importances = best_tree.named_steps[\n",
+        "    'tree'\n",
+        "].feature_importances_\n",
+        "\n",
+        "feature_names = best_tree.named_steps[\n",
+        "    'preprocessor'\n",
+        "].get_feature_names_out()\n",
+        "\n",
+        "rf_reg_importance_df = pd.Series(\n",
+        "    importances,\n",
+        "    index=feature_names\n",
+        ").sort_values(ascending=False)\n",
+        "\n",
+        "print(rf_reg_importance_df.head(5))"
+      ],
+      "id": "d1f9b8de",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "top_features = rf_reg_importance_df.head(5)\n",
+        "\n",
+        "fig, ax = plt.subplots(figsize=(6,5))\n",
+        "\n",
+        "ax.barh(\n",
+        "    top_features.index[::-1],\n",
+        "    top_features.values[::-1]\n",
+        ")\n",
+        "\n",
+        "ax.set_xlabel('Feature Importance')\n",
+        "ax.set_title(\n",
+        "    'Top Variables Influencing Fraction of Genome Altered'\n",
+        ")\n",
+        "\n",
+        "ax.spines['top'].set_visible(False)\n",
+        "ax.spines['right'].set_visible(False)\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()"
+      ],
+      "id": "dcbfcd98",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Discussion\n",
+        "\n",
+        "This analysis explored whether genomic and clinical variables could predict prostate cancer progression-free survival status using machine learning classification models. A random forest classifier was trained using processed clinical and genomic variables following data cleaning and preprocessing.\n",
+        "\n",
+        "The classification model demonstrated predictive capability for survival outcomes, and ROC curve analysis provided additional evaluation of model discrimination performance across classification thresholds. Feature importance analysis identified Fraction of Genome Altered as one of the strongest predictive variables, suggesting that genomic instability may contribute significantly to prostate cancer progression.\n",
+        "\n",
+        "Additional exploratory analysis investigated relationships between hypoxia and Fraction of Genome Altered. Observed trends between these variables support the hypothesis that tumor microenvironment conditions may influence genomic instability and tumor progression.\n",
+        "\n",
+        "Overall, this project demonstrates how machine learning approaches can be applied to cancer genomics data to investigate clinically relevant predictors of disease progression and survival outcomes.\n",
+        "\n",
+        "# Future Directions\n",
+        "\n",
+        "Potential future improvements include:\n",
+        "\n",
+        "* Hyperparameter optimization\n",
+        "* Additional feature engineering \n",
+        "    * Correct for class imbalance\n",
+        "    * Feature Selection \n"
+      ],
+      "id": "f77c2d84"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/Users/maddiemann/miniforge3/envs/math4025/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}

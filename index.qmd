@@ -1,7 +1,15 @@
 ---
-title: "my-website"
+title: "Maddie Mann"
 ---
 
-This is a Quarto website.
+# Welcome
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+Hi! My name is Maddie Mann. I am a biochemistry student interested in bioinformatics, research, and analytical science.
+
+
+## Contact
+
+- Email: maddiermann44@gmail.com
+- GitHub: https://github.com/maddiemann
+
+
